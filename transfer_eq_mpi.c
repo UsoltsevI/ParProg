@@ -220,10 +220,15 @@ int main(int argc, char** argv) {
     int rank, size;
     int tag = 0;
     MPI_Status status;
+    double start_time, end_time;
 
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
+
+    if (rank == 0) {
+        start_time = MPI_Wtime();
+    }
 
     if (size < 2) {
         fprintf(stderr, "Size should be greater than 1\n");
@@ -231,8 +236,8 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    if (argc != 3) {
-        fprintf(stderr, "Usage: %s <K> <M>\n", argv[0]);
+    if (argc < 3 || argc > 4) {
+        fprintf(stderr, "Usage: %s <K> <M> <out?>\n", argv[0]);
         MPI_Finalize();
         return 1; 
     }
@@ -348,9 +353,21 @@ int main(int argc, char** argv) {
             recv_uk_root(u, k, M);
         }
 
-        // Вывод данных
-        out_like_csv(stdout, u, K, M);
+        end_time = MPI_Wtime();
+        fprintf(stderr,"Total execution time: %.6f seconds\n", end_time - start_time);
 
+        // лень писать что-то более осмысленное
+        if (argc == 4) {
+            // Вывод данных
+            start_time = MPI_Wtime();
+            out_like_csv(stdout, u, K, M);
+            end_time = MPI_Wtime();
+
+            fprintf(stderr, "Output time: %.6f seconds\n", end_time - start_time);
+        } else {
+            fprintf(stderr, "No Output\n");
+        }
+       
         free(u);
         free(phi);
     }

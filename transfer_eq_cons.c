@@ -7,6 +7,8 @@
 #include <string.h>
 #include <errno.h>
 #include <math.h>
+#include <time.h>
+#include <sys/time.h>
 
 #define K_COEFF 0.01
 #define M_COEFF 0.01
@@ -151,10 +153,14 @@ void out_like_csv(FILE* out, double** u, int K, int M) {
 }
 
 int main(int argc, char** argv) {
-    if (argc != 3) {
-        fprintf(stderr, "Usage: %s <K> <M>\n", argv[0]);
+    if (argc < 3 || argc > 4) {
+        fprintf(stderr, "Usage: %s <K> <M> <out?>\n", argv[0]);
         return 1; 
     }
+
+    struct timespec start_time, end_time;
+
+    clock_gettime(CLOCK_MONOTONIC, &start_time);
 
     int K = atoi(argv[1]);
     int M = atoi(argv[2]);
@@ -194,8 +200,24 @@ int main(int argc, char** argv) {
         u[k + 1][M - 1] = calc_corner(u, f, k, M - 1, tau, h);
     }
 
-    // Вывод данных
-    out_like_csv(stdout, u, K, M);
+    clock_gettime(CLOCK_MONOTONIC, &end_time);
+    double elapsed = (end_time.tv_sec - start_time.tv_sec) + 
+                     (end_time.tv_nsec - start_time.tv_nsec) / 1000000000.0;
+    fprintf(stderr, "Execution Time: %.6f seconds\n", elapsed);
+
+    if (argc == 4) {
+        // Вывод данных
+        clock_gettime(CLOCK_MONOTONIC, &start_time);
+        out_like_csv(stdout, u, K, M);
+        clock_gettime(CLOCK_MONOTONIC, &end_time);
+        elapsed = (end_time.tv_sec - start_time.tv_sec) + 
+                        (end_time.tv_nsec - start_time.tv_nsec) / 1000000000.0;
+
+        fprintf(stderr, "Output Time: %.6f seconds\n", elapsed);
+    } else {
+        fprintf(stderr, "No output\n");
+    }
+    
 
     free(psi);
     free(phi);
