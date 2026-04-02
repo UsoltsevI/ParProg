@@ -13,6 +13,9 @@
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
+#define K_COEFF 0.01
+#define M_COEFF 0.01
+
 /**
  * Получить значения u(0, x) на сетке [0, M]
  */
@@ -23,7 +26,7 @@ double* get_phi(int M) {
         return NULL;
     }
     for (int m = 0; m < M; m++) {
-        phi_values[m] = sin(m);
+        phi_values[m] = sin(m * M_COEFF);
     }
     return phi_values;
 }
@@ -34,7 +37,7 @@ double* get_phi(int M) {
  * Отличается от функции последовательного плгоритма!!!
  */
 double get_psi(int k) {
-    return sin(k);
+    return sin(k * K_COEFF);
 }
 
 /**
@@ -52,7 +55,7 @@ void free_fu(double** fu, int k) {
  */
 void get_fk(double* fk, int k, int M) {
     for (int m = 0; m < M; m++) {
-        fk[m] = sin(k * m);
+        fk[m] = sin(k * m * K_COEFF * M_COEFF);
     }
 }
 
@@ -175,18 +178,8 @@ void send_uk_data(double* uk, double* uk1, int start, int end, int to_rank, int 
     memcpy(ukuk, uk + start, sz * sizeof(double));
     memcpy(ukuk + sz, uk1 + start, sz * sizeof(double));
 
-    // printf("sending to process %d\n", to_rank);
-    // printf("uk");
-    // print_double_arr(uk + start, sz);
-    // printf("\n uk1 \n");
-    // print_double_arr(uk1 + start, sz);
-    // printf("\n");
-    // print_double_arr(ukuk, sz * 2);
-    // printf("\n");
-
     MPI_Request request;
     
-    // printf("Sending TAG %d\n", tag);
     MPI_Isend(ukuk, sz * 2, MPI_DOUBLE, to_rank, tag, MPI_COMM_WORLD, &request);
     // free(ukuk); пока с утечкой
 }
@@ -198,18 +191,9 @@ void recv_uk_data(double* uk, double* uk1, int start, int end, int from_rank, in
     int sz = end - start;
     double* buf = (double *) malloc(sz * 2 * sizeof(double));
     MPI_Status status;
-    // printf("Waiting (from %d) for TAG %d\n", from_rank, tag);
     MPI_Recv(buf, sz * 2, MPI_DOUBLE, from_rank, tag, MPI_COMM_WORLD, &status);
     memcpy(uk + start, buf, sz * sizeof(double));
     memcpy(uk1 + start, buf + sz, sz * sizeof(double));
-
-    // printf("recieved from process %d\n", from_rank);
-    // print_double_arr(buf, sz * 2);
-    // printf("\n");
-    // print_double_arr(uk + start, sz);
-    // printf("\n");
-    // print_double_arr(uk1 + start, sz);
-    // printf("\n");
 
     free(buf);
 }
@@ -220,11 +204,7 @@ void recv_uk_data(double* uk, double* uk1, int start, int end, int from_rank, in
 void send_uk_to_root(double* uk, int k, int M) {
     double* copy = (double *) malloc(M * sizeof(double));
     memcpy(copy, uk, M * sizeof(double));
-    // printf("sending to root, k = %d\n", k);
-    // print_double_arr(uk, M);
-    // printf("\n");
     MPI_Request request;
-    // printf("Sending ROOTTAG %d\n", calc_root_tag_uk(k));
     MPI_Isend(copy, M, MPI_DOUBLE, 0, calc_root_tag_uk(k), MPI_COMM_WORLD, &request);
     // free(copy); пока с утечкой
 }
@@ -233,22 +213,13 @@ void send_uk_to_root(double* uk, int k, int M) {
  * Принять результаты на 0 процессе
  */
 void recv_uk_root(double** u, int k, int M) {
-    // printf("Waiting for ROOTTAG %d\n", calc_root_tag_uk(k));
     MPI_Recv(u[k], M, MPI_DOUBLE, MPI_ANY_SOURCE, calc_root_tag_uk(k), MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    // printf("recieved at root, k = %d\n", k);
-    // print_double_arr(u[k], M);
-    // printf("\n");
 }
 
 int main(int argc, char** argv) {
     int rank, size;
     int tag = 0;
     MPI_Status status;
-
-    int K = 100;
-    int M = 100;
-    double tau = 0.01;
-    double h = 0.01;
 
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -259,6 +230,28 @@ int main(int argc, char** argv) {
         MPI_Finalize();
         return 1;
     }
+
+    if (argc != 3) {
+        fprintf(stderr, "Usage: %s <K> <M>\n", argv[0]);
+        MPI_Finalize();
+        return 1; 
+    }
+
+    int K = atoi(argv[1]);
+    int M = atoi(argv[2]);
+
+    if (K <= 4) {
+        fprintf(stderr, "K must be greater than 4\n");
+        MPI_Abort(MPI_COMM_WORLD, 1);
+    }
+
+    if (M <= size) {
+        fprintf(stderr, "M must be greater than size = %d\n", size);
+        MPI_Abort(MPI_COMM_WORLD, 1);
+    }
+
+    double tau = 0.01;
+    double h = 0.01;
 
     int* steps = get_steps(M, size);
 

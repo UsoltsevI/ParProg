@@ -8,6 +8,9 @@
 #include <errno.h>
 #include <math.h>
 
+#define K_COEFF 0.01
+#define M_COEFF 0.01
+
 /**
  * Получить значения u(0, x) на сетке [0, M]
  */
@@ -18,7 +21,7 @@ double* get_phi(int M) {
         return NULL;
     }
     for (int m = 0; m < M; m++) {
-        phi_values[m] = sin(m);
+        phi_values[m] = sin(m * M_COEFF);
     }
     return phi_values;
 }
@@ -33,7 +36,7 @@ double* get_psi(int K) {
         return NULL;
     }
     for (int k = 0; k < K; k++) {
-        psi_values[k] = sin(k);
+        psi_values[k] = sin(k * K_COEFF);
     }
     return psi_values;
 }
@@ -70,7 +73,7 @@ double** get_f(int K, int M) {
 
     for (int k = 0; k < K; k++) {
         for (int m = 0; m < M; m++) {
-            f_values[k][m] = sin(k * m);
+            f_values[k][m] = sin(k * m * K_COEFF * M_COEFF);
         }
     }
 
@@ -147,9 +150,25 @@ void out_like_csv(FILE* out, double** u, int K, int M) {
     }
 }
 
-int main() {
-    int K = 100;
-    int M = 100;
+int main(int argc, char** argv) {
+    if (argc != 3) {
+        fprintf(stderr, "Usage: %s <K> <M>\n", argv[0]);
+        return 1; 
+    }
+
+    int K = atoi(argv[1]);
+    int M = atoi(argv[2]);
+
+    if (K <= 4) {
+        fprintf(stderr, "K must be greater than 4\n");
+        return 1;
+    }
+
+    if (M <= 8) {
+        fprintf(stderr, "M must be greater than 8\n");
+        return 1;
+    }
+
     double tau = 0.01;
     double h = 0.01;
 
