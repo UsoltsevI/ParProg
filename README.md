@@ -6,11 +6,15 @@
 Также можно взять с сайта https://www.numberworld.org/digits/E/
 
 ### Уравнение переноса
-[./transfer_eq_cons.c](./transfer_eq_cons) - реализация последоватльного алгоритма решения уравнения переноса на равномерной сетке [$x = m h$, $t = k \tau$] в координатах [x, t]
+[./transfer/transfer_eq_cons.c](./transfer/transfer_eq_cons.c) - реализация последоватльного алгоритма решения уравнения переноса на равномерной сетке [$x = m h$, $t = k \tau$] в координатах [x, t]
 
-[./transfer_eq_mpi.c](./transfer_eq_mpi.c) - параллельная оптимизация, но не самая эффективная
+[./transfer/transfer_eq_mpi.c](./transfer/transfer_eq_mpi.c) - параллельная оптимизация, но не самая эффективная
 
-[./transfer_eq_mpi_sz.c](./transfer_eq_mpi_sz.c) - наиболее эффективная реализация, где один из потоков не участвует в вычислениях, но собирает данные с остальных
+[./transfer/transfer_eq_mpi_sz.c](./transfer/transfer_eq_mpi_sz.c) - наиболее эффективная реализация, где один из потоков не участвует в вычислениях, но собирает данные с остальных
+
+Результаты вычислений:
+![](./transfer/graphs/heatmap.png)
+
 
 Результаты тестов: 
 
@@ -54,11 +58,8 @@
 | mpi | 16 | 10000 | 100000 | 25.36 |
 
 
-![](./comparison_sz_vs_mpi.png)
+![](./transfer/graphs/comparison_sz_vs_mpi.png)
 
 
-![](./time_vs_grid_size.png)
-
-
-
+![](./transfer/graphs/time_vs_grid_size.png)
 
