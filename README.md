@@ -60,6 +60,8 @@
 
 ![](./transfer/graphs/comparison_sz_vs_mpi.png)
 
+![](./transfer/graphs/speedup.png)
+
 
 ![](./transfer/graphs/time_vs_grid_size.png)
 
