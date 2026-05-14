@@ -15,8 +15,8 @@
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
-#define K_COEFF 0.01
-#define M_COEFF 0.01
+#define K_COEFF 0.001
+#define M_COEFF 0.001
 
 /**
  * Получить значения u(0, x) на сетке [0, M]
@@ -28,7 +28,16 @@ double* get_phi(int M) {
         return NULL;
     }
     for (int m = 0; m < M; m++) {
-        phi_values[m] = sin(m * M_COEFF);
+        // phi_values[m] = sin(m * M_COEFF);
+        #ifdef COS_EXP
+            phi_values[m] = exp(- m * M_COEFF);
+        #endif
+        #ifdef SIN_SIN
+            phi_values[m] = sin(2 * M_PI * m * M_COEFF);
+        #endif
+        #ifdef X2_T2
+            phi_values[m] = m * m * M_COEFF * M_COEFF;
+        #endif
     }
     return phi_values;
 }
@@ -39,7 +48,16 @@ double* get_phi(int M) {
  * Отличается от функции последовательного плгоритма!!!
  */
 double get_psi(int k) {
-    return sin(k * K_COEFF);
+    // return sin(k * K_COEFF);
+    #ifdef COS_EXP
+        return cos(M_PI * k * K_COEFF);
+    #endif
+    #ifdef SIN_SIN
+        return - sin(2 * M_PI * k * K_COEFF);
+    #endif
+    #ifdef X2_T2
+        return k * k * K_COEFF * K_COEFF;
+    #endif
 }
 
 /**
@@ -57,7 +75,16 @@ void free_fu(double** fu, int k) {
  */
 void get_fk(double* fk, int k, int M) {
     for (int m = 0; m < M; m++) {
-        fk[m] = sin(k * m * K_COEFF * M_COEFF);
+        // fk[m] = sin(k * m * K_COEFF * M_COEFF);
+        #ifdef COS_EXP
+            fk[m] = m * M_COEFF + k * K_COEFF;
+        #endif
+        #ifdef SIN_SIN
+            fk[m] = 0.0;
+        #endif
+        #ifdef X2_T2
+            fk[m] = 4.0 * (m * M_COEFF + k * K_COEFF);
+        #endif
     }
 }
 
@@ -108,7 +135,7 @@ int* get_steps(int M, int size) {
  * без присвоения значения узлу u[k + 1][m]
  */
 double calc_corner(double* uk, double* fk, int m, double tau, double h) {
-    return (fk[m] - (uk[m] - uk[m - 1]) * h) * tau + uk[m];
+    return (fk[m] - (uk[m] - uk[m - 1]) / h) * tau + uk[m];
 }
 
 /**
@@ -126,7 +153,8 @@ double calc_center_three(double* uk, double* fk, int m, double tau, double h) {
  * uk1 = u[k - 1]
  */
 double calc_cross(double* uk, double* uk1, double* fk, int m, double tau, double h) {
-    return (fk[m] - (uk[m + 1] - uk[m - 1]) / (2 * h)) * (2 * tau) + uk1[m];
+    // return (fk[m] - (uk[m + 1] - uk[m - 1]) / (2 * h)) * (2 * tau) + uk1[m];
+    return uk1[m] - (tau/h) * (uk[m+1] - uk[m-1]) + 2.0 * tau * fk[m];
 }
 
 /**
@@ -255,8 +283,8 @@ int main(int argc, char** argv) {
         MPI_Abort(MPI_COMM_WORLD, 1);
     }
 
-    double tau = 0.01;
-    double h = 0.01;
+    double tau = K_COEFF;
+    double h = M_COEFF;
 
     int* steps = get_steps(M, size);
 

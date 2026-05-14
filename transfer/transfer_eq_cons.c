@@ -10,8 +10,8 @@
 #include <time.h>
 #include <sys/time.h>
 
-#define K_COEFF 0.01
-#define M_COEFF 0.01
+#define K_COEFF 0.001
+#define M_COEFF 0.001
 
 /**
  * Получить значения u(0, x) на сетке [0, M]
@@ -23,7 +23,16 @@ double* get_phi(int M) {
         return NULL;
     }
     for (int m = 0; m < M; m++) {
-        phi_values[m] = sin(m * M_COEFF);
+        // phi_values[m] = sin(m * M_COEFF);
+        #ifdef COS_EXP
+            phi_values[m] = exp(- m * M_COEFF);
+        #endif
+        #ifdef SIN_SIN
+            phi_values[m] = sin(2 * M_PI * m * M_COEFF);
+        #endif
+        #ifdef X2_T2
+            phi_values[m] = m * m * M_COEFF * M_COEFF;
+        #endif
     }
     return phi_values;
 }
@@ -38,7 +47,16 @@ double* get_psi(int K) {
         return NULL;
     }
     for (int k = 0; k < K; k++) {
-        psi_values[k] = sin(k * K_COEFF);
+        // psi_values[k] = sin(k * K_COEFF);
+        #ifdef COS_EXP
+            psi_values[k] = cos(M_PI * k * K_COEFF);
+        #endif
+        #ifdef SIN_SIN
+            psi_values[k] = - sin(2 * M_PI * k * K_COEFF);
+        #endif
+        #ifdef X2_T2
+            psi_values[k] = k * k * K_COEFF * K_COEFF;
+        #endif
     }
     return psi_values;
 }
@@ -75,7 +93,16 @@ double** get_f(int K, int M) {
 
     for (int k = 0; k < K; k++) {
         for (int m = 0; m < M; m++) {
-            f_values[k][m] = sin(k * m * K_COEFF * M_COEFF);
+            // f_values[k][m] = sin(k * m * K_COEFF * M_COEFF);
+            #ifdef COS_EXP
+                f_values[k][m] = m * M_COEFF + k * K_COEFF;
+            #endif
+            #ifdef SIN_SIN
+                f_values[k][m] = 0.0;
+            #endif
+            #ifdef X2_T2
+                f_values[k][m] = 4 * (m * M_COEFF + k * K_COEFF);
+            #endif
         }
     }
 
@@ -120,7 +147,7 @@ double** get_initial_u(double* psi, double* phi, int K, int M) {
  * без присвоения значения узлу u[k + 1][m]
  */
 double calc_corner(double** u, double** f, int k, int m, double tau, double h) {
-    return (f[k][m] - (u[k][m] - u[k][m - 1]) * h) * tau + u[k][m];
+    return (f[k][m] - (u[k][m] - u[k][m - 1]) / h) * tau + u[k][m];
 }
 
 /**
@@ -136,7 +163,8 @@ double calc_center_three(double** u, double** f, int k, int m, double tau, doubl
  * без присвоения значения узлу u[k + 1][m]
  */
 double calc_cross(double** u, double** f, int k, int m, double tau, double h) {
-    return (f[k][m] - (u[k][m + 1] - u[k][m - 1]) / (2 * h)) * (2 * tau) + u[k - 1][m];
+    // return (f[k][m] - (u[k][m + 1] - u[k][m - 1]) / (2 * h)) * (2 * tau) + u[k - 1][m];
+    return u[k-1][m] - (tau/h) * (u[k][m+1] - u[k][m-1]) + 2.0 * tau * f[k][m];
 }
 
 /**
@@ -175,8 +203,8 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    double tau = 0.01;
-    double h = 0.01;
+    double tau = K_COEFF;
+    double h = M_COEFF;
 
     double* psi = get_psi(K);
     double* phi = get_phi(M);
