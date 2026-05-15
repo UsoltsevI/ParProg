@@ -1,61 +1,55 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <omp.h>
+#include <pthread.h>
+
+double global_sum = 0.0;
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+
+typedef struct {
+    long long start;
+    long long end;
+} range_t;
+
+void* calculate(void* arg) {
+    range_t* r = (range_t*) arg;
+    double local_sum = 0.0;
+
+    for (long long n = r->start; n <= r->end; n++) {
+        local_sum += 1.0 / n;
+    }
+
+    pthread_mutex_lock(&mutex);
+    global_sum += local_sum;
+    pthread_mutex_unlock(&mutex);
+
+    return NULL;
+}
 
 int main(int argc, char** argv) {
     if (argc != 3) {
-        printf("Usage: %s <N> <num_threads>\n", argv[0]);
-        printf("Example: %s 1000000 4\n", argv[0]);
+        printf("Usage: %s <N> <threads_num>\n", argv[0]);
         return 1;
     }
-    
+
     long long N = atoll(argv[1]);
     int num_threads = atoi(argv[2]);
-    
-    if (N <= 0) {
-        printf("N must be positive\n");
-        return 1;
+
+    pthread_t threads[num_threads];
+    range_t ranges[num_threads];
+
+    long long chunk = N / num_threads;
+
+    for (int i = 0; i < num_threads; i++) {
+        ranges[i].start = i * chunk + 1;
+        ranges[i].end = (i == num_threads - 1) ? N : (i + 1) * chunk;
+        pthread_create(&threads[i], NULL, calculate, &ranges[i]);
     }
-    
-    if (num_threads <= 0) {
-        printf("Number of threads must be positive\n");
-        return 1;
+
+    for (int i = 0; i < num_threads; i++) {
+        pthread_join(threads[i], NULL);
     }
-    
-    omp_set_num_threads(num_threads);
-    
-    double sum = 0.0;
-    double start_time, end_time;
-    
-    start_time = omp_get_wtime();
-    
-    #pragma omp parallel reduction(+:sum)
-    {
-        int thread_id = omp_get_thread_num();
-        int actual_threads = omp_get_num_threads();
-        
-        #pragma omp single
-        {
-            printf("Requested threads: %d\n", num_threads);
-            printf("Actual threads: %d\n", actual_threads);
-            printf("Calculating harmonic sum for N = %lld\n\n", N);
-        }
-        
-        #pragma omp for
-        for (long long n = 1; n <= N; n++) {
-            sum += 1.0 / n;
-        }
-        
-        #pragma omp critical
-        {
-            printf("Thread %d finished its part\n", thread_id);
-        }
-    }
-    
-    end_time = omp_get_wtime();
-    
-    printf("\nResult: %.15f\n", sum);
-    printf("Time: %.6f seconds\n", end_time - start_time);
-    
+
+    printf("%.15f\n", global_sum);
+
     return 0;
 }

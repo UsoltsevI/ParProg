@@ -1,23 +1,28 @@
 #include <stdio.h>
+#include <pthread.h>
 #include <stdlib.h>
-#include <omp.h>
+
+#define NUM_THREADS 4 // default value
+
+void* print_hello(void* args) {
+    int* data = (int*) args;
+    printf("Hello from thread %d (total %d)\n", data[0], data[1]);
+    return NULL;
+}
 
 int main(int argc, char** argv) {
-    int num_threads = 4;  // Значение по умолчанию
-    
-    if (argc > 1) {
-        num_threads = atoi(argv[1]);
+    pthread_t threads[NUM_THREADS];
+    int thread_data[NUM_THREADS][2];
+
+    for (int i = 0; i < NUM_THREADS; i++) {
+        thread_data[i][0] = i;
+        thread_data[i][1] = NUM_THREADS;
+        pthread_create(&threads[i], NULL, print_hello, thread_data[i]);
     }
-    
-    omp_set_num_threads(num_threads);
-    
-    #pragma omp parallel
-    {
-        int thread_id = omp_get_thread_num();
-        int total_threads = omp_get_num_threads();
-        
-        printf("Hello World! Thread %d of %d\n", thread_id, total_threads);
+
+    for (int i = 0; i < NUM_THREADS; i++) {
+        pthread_join(threads[i], NULL);
     }
-    
+
     return 0;
 }
