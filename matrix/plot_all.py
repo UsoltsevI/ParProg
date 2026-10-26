@@ -1,7 +1,5 @@
-#!/usr/bin/env python3
 """
-Сводные графики по всем пунктам лабораторной + финальная версия.
-Исправлено: автоопределение колонки 'threads' в CSV.
+Сводные графики по всем пунктам лабораторной
 """
 import csv
 import statistics
@@ -12,7 +10,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-# ---------------- 1. Чтение и агрегация ----------------
+# Чтение и агрегация
 
 def load_csv(path: Path, group_by: str = None, default_threads: str = None):
     """CSV -> {key: {n: [времена]}}.
@@ -61,8 +59,6 @@ def mean_std(by_n):
     return np.array(sizes), means, stds
 
 
-# ---------------- 2. Источники ----------------
-
 # (label, file, group_by, default_threads)
 SOURCES = [
     ("п.1 naive",     "measurements_naive.csv",     None, None),
@@ -108,12 +104,11 @@ naive = next((s for s in series if s[0].startswith("п.1")), None)
 if naive is None:
     print("Внимание: naive не найден — график ускорения не построить")
 
-# проверка, что финальная появилась
 if not any(s[0].startswith("Final") for s in series):
     print("Внимание: финальная версия не загрузилась — проверьте measurements_final.csv")
 
 
-# ---------------- 3. График 1: линейный ----------------
+# График 1: линейный 
 
 MARKERS = ["o", "s", "^", "D", "v", "P", "X", "*", "h", "<", ">", "p"]
 
@@ -134,7 +129,7 @@ plt.close(fig)
 print("\n-> plot_all_linear.png")
 
 
-# ---------------- 4. График 2: лог-лог + O(n^3) ----------------
+# График 2: лог-лог + O(n^3)
 
 fig, ax = plt.subplots(figsize=(11, 6))
 for i, (label, sizes, mean, std) in enumerate(series):
@@ -162,7 +157,7 @@ plt.close(fig)
 print("-> plot_all_loglog.png")
 
 
-# ---------------- 5. График 3: ускорение относительно naive ----------------
+# График 3: ускорение относительно naive 
 
 if naive is not None:
     _, sizes_n, mean_n, _ = naive
@@ -196,7 +191,7 @@ if naive is not None:
     print("-> plot_all_speedup.png")
 
 
-# ---------------- 6. Сводный CSV ----------------
+# Сводный CSV 
 
 with open("summary_all.csv", "w", newline="") as f:
     w = csv.writer(f)
