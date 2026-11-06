@@ -191,6 +191,61 @@ if naive is not None:
     print("-> plot_all_speedup.png")
 
 
+# ---------------- 5б. График эффективности ----------------
+
+if naive is not None:
+    _, sizes_n, mean_n, _ = naive
+    naive_map = dict(zip(sizes_n, mean_n))
+
+    # Для каждой версии — сколько "единиц параллелизма" она использует.
+    # p = 1 для последовательных, p = threads для OpenMP, p = threads для финала.
+    # Для AVX эффективность считаем относительно "ширины AVX" = 4 (double).
+    PARALLELISM = {
+        "п.2 transpose": 1,
+        "п.3 blocked":   1,
+        "п.4 Strassen":  1,
+        "п.6 AVX":       4,      # 4 double за инструкцию
+    }
+
+    fig, ax = plt.subplots(figsize=(11, 6))
+
+    for i, (label, sizes, mean, std) in enumerate(series):
+        if label.startswith("п.1"):
+            continue
+
+        # определяем p
+        p = PARALLELISM.get(label)
+        if p is None and "(4 потоков)" in label:
+            p = 4
+        if p is None and "(8 потоков)" in label:
+            p = 8
+        if p is None:
+            p = 1
+
+        pairs = [(n, naive_map[n] / t) for n, t in zip(sizes, mean)
+                 if n in naive_map]
+        if not pairs:
+            continue
+        sizes_use = np.array([q[0] for q in pairs])
+        speedup   = np.array([q[1] for q in pairs])
+        efficiency = speedup / p
+
+        ax.plot(sizes_use, efficiency,
+                MARKERS[i % len(MARKERS)] + "-",
+                label=f"{label}  (p={p})", linewidth=1.5, markersize=6)
+
+    ax.axhline(1.0, color="gray", ls="--", linewidth=1, label="идеал E=1")
+    ax.set_xscale("log")
+    ax.set_xlabel("размер матрицы n (log)")
+    ax.set_ylabel("эффективность E = S / p")
+    ax.set_title("Эффективность относительно наивного алгоритма")
+    ax.grid(True, which="both", ls=":")
+    ax.legend(loc="upper left", fontsize=8)
+    fig.tight_layout()
+    fig.savefig("plot_all_efficiency.png", dpi=150)
+    plt.close(fig)
+    print("-> plot_all_efficiency.png")
+
 # Сводный CSV 
 
 with open("summary_all.csv", "w", newline="") as f:
